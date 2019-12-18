@@ -1,5 +1,6 @@
 #include "WiFi.h"
 #include "ArduinoJson.h"
+#include "Adafruit_NeoPixel.h"
 
 const char* ssid = "DP-and-DPL";
 const char* password =  "escaflowne";
@@ -12,6 +13,19 @@ DynamicJsonDocument doc(10000);
 String json = "";
 
 boolean NewData = false;
+
+#define PIN 27
+
+// Paramètre 1 = Le nombre de NéoPixels chainés
+// Paramètre 2 = No de broche de données (Sur votre Arduino, la plupart convient)
+// Paramètre 3 = Type de pixel (flags/drapeaux), a combiner ensemble en fonction du besoin:
+//   NEO_KHZ800  flux de données à 800 KHz (plupart des NéoPixel basé sur les LEDs w/WS2812)
+//   NEO_KHZ400  flux de données à 400 KHz (Pour les Pixels classiques 'v1' FLORA (pas les V2) pilotés par WS2811)
+//   NEO_GRB     Pixels sont raccordés en flux de donnée GRB (GRB=Green,Red,Blue=Vert,Rouge,Bleu - la plupart des produits NéoPixel)
+//   NEO_RGB     Pixels sont raccordés en flux de donnée RGB (RGB=Red,Green,Blue=Rouge,Vert,Bleu - Pixels FLORA v1, pas la v2)
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_RGB + NEO_KHZ800);
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -27,6 +41,8 @@ void setup() {
   Serial.println(ip);
   wifiServer.begin();
 
+  strip.begin();
+  strip.show();
 
 
   xTaskCreate(
@@ -52,8 +68,8 @@ void wifiRun(void * parameter) {
             text += c;
             //Serial.write(c);
           } else {
-            //Serial.println("Commande trouve");
-            //Serial.println(text);
+            Serial.println("Commande trouve");
+            Serial.println(text);
             json = text;
             NewData = true;
             text = "";
@@ -126,13 +142,17 @@ if (NewData) {
 //     
       
       if (p == 2){
-//          Serial.print(pixel[t/3][0]);
-//           Serial.print("/");
-//           Serial.print(pixel[t/3][1]);
-//           Serial.print("/");
-//           Serial.print(pixel[t/3][2]);
-//           Serial.print("/");
-//           Serial.println("");
+         Serial.print("Pixel:");
+            Serial.print(t/3);
+             Serial.print("=");
+           Serial.print(pixel[t/3][0]);
+           Serial.print("/");
+           Serial.print(pixel[t/3][1]);
+           Serial.print("/");
+           Serial.print(pixel[t/3][2]);
+           Serial.print("/");
+           Serial.println("");
+        strip.setPixelColor(t/3, pixel[t/3][0], pixel[t/3][1], pixel[t/3][2]);
         p = 0;
       } else {
         p++;
@@ -144,6 +164,7 @@ if (NewData) {
   }
   NewData = false;
  Serial.println("FIN");
+ strip.show();
   
 }
   //delay(10);
