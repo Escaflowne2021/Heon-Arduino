@@ -23,9 +23,9 @@ boolean NewData = false;
 //   NEO_KHZ400  flux de données à 400 KHz (Pour les Pixels classiques 'v1' FLORA (pas les V2) pilotés par WS2811)
 //   NEO_GRB     Pixels sont raccordés en flux de donnée GRB (GRB=Green,Red,Blue=Vert,Rouge,Bleu - la plupart des produits NéoPixel)
 //   NEO_RGB     Pixels sont raccordés en flux de donnée RGB (RGB=Red,Green,Blue=Rouge,Vert,Bleu - Pixels FLORA v1, pas la v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_RGB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(60, PIN, NEO_GRB + NEO_KHZ800);
 
-
+ String cmd = "";
 
 void setup() {
   Serial.begin(115200);
@@ -45,15 +45,20 @@ void setup() {
   strip.show();
 
 
-  xTaskCreate(
-    wifiRun,
-    "Wifi",
-    10000,
-    NULL,
-    1,
-    NULL);
+//  xTaskCreate(
+//    wifiRun,
+//    "Wifi",
+//    10000,
+//    NULL,
+//    1,
+//    NULL);
 
 
+}
+
+void LedTask(void * parameter){
+
+  vTaskDelete(NULL);
 }
 
 void wifiRun(void * parameter) {
@@ -68,8 +73,8 @@ void wifiRun(void * parameter) {
             text += c;
             //Serial.write(c);
           } else {
-            Serial.println("Commande trouve");
-            Serial.println(text);
+//            Serial.println("Commande trouve");
+//            Serial.println(text);
             json = text;
             NewData = true;
             text = "";
@@ -80,46 +85,15 @@ void wifiRun(void * parameter) {
 
       }
       client.stop();
-      Serial.println("Client disconnected");
+//      Serial.println("Client disconnected");
     }
   }
   vTaskDelete(NULL);
 }
 
 
-
-
-
-
-// the loop function runs over and over again forever
-void loop() {
-  //  Serial.println("-----------------");
-  //  DeserializationError err=deserializeJson(doc, json);
-  //  if(err) {
-  //    Serial.print(F("deserializeJson() failed with code "));Serial.println(err.c_str());
-  //  }
-  //  JsonObject arr = doc.as<JsonObject>();
-  //  int count = arr.size();
-  //  int memoryUsed = doc.memoryUsage();
-  //  String type = doc["type"];
-  //  Serial.println(type);
-  //  delay(1000);
-  
-  //String pixel[256];
-  //int r = 0;
-  //int t = 0;
-  //
-  //for (int i=0; i < json.length(); i++)
-  //{
-  // if(json.charAt(i) == '#')
-  //  {
-  //    pixel[t] = json.substring(r, i);
-  //    Serial.println( pixel[t]);
-  //    r=(i+1);
-  //    t++;
-  //  }
-  //}
-if (NewData) {
+void SetupLEd(String json){
+  if (NewData) {
   Serial.println("DEBUT");
   int pixel[256][3];
   int r = 0;
@@ -130,28 +104,10 @@ if (NewData) {
   {
     if (json.charAt(i) == ',' || json.charAt(i) == '#' ) {
       pixel[t/3][p] =  json.substring(r, i).toInt();
-//      Serial.print( String(t/3) );
-//       Serial.print( "-" );
-//        Serial.print( String(p) );
-//        Serial.print( "- String :" );
-//         Serial.print( json.substring(r, i) );
-//        Serial.print( "- Int :" );
-//        Serial.print( json.substring(r, i).toInt() );
-//         Serial.print( "- tableau :" );
-//          Serial.println(pixel[t/3][p]);
+//     
 //     
       
       if (p == 2){
-         Serial.print("Pixel:");
-            Serial.print(t/3);
-             Serial.print("=");
-           Serial.print(pixel[t/3][0]);
-           Serial.print("/");
-           Serial.print(pixel[t/3][1]);
-           Serial.print("/");
-           Serial.print(pixel[t/3][2]);
-           Serial.print("/");
-           Serial.println("");
         strip.setPixelColor(t/3, pixel[t/3][0], pixel[t/3][1], pixel[t/3][2]);
         p = 0;
       } else {
@@ -167,5 +123,38 @@ if (NewData) {
  strip.show();
   
 }
+}
+
+
+
+// the loop function runs over and over again forever
+void loop() {
+ WiFiClient client = wifiServer.available();
+    if (client) {
+      while (client.connected()) {
+        String text = "";
+        while (client.available() > 0) {
+          char c = client.read();
+          if (c != '\n') {
+            text += c;
+            //Serial.write(c);
+          } else {
+//            Serial.println("Commande trouve");
+//            Serial.println(text);
+            cmd = text;
+            NewData = true;
+            SetupLEd(cmd);
+            text = "";
+           
+
+          }
+
+        }
+
+      }
+      client.stop();
+//      Serial.println("Client disconnected");
+    }
+
   //delay(10);
 }
